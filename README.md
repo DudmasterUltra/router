@@ -10,4 +10,7 @@ by the gateway, which can be automatically searched for a default IP addresses o
 a supplied address. Note: Fallback IPs may pose a security risk if the "real" router
 is unreachable. Disabling fallbacks can fix this problem.
 
+I have also included an example program that will run in the background and reboot your
+router whenever the WAN is unreachable.
+
 Dependencies: requests
