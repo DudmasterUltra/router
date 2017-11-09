@@ -9,3 +9,5 @@ The interface can also use heuristics to automatically identify the router model
 by the gateway, which can be automatically searched for a default IP addresses or
 a supplied address. Note: Fallback IPs may pose a security risk if the "real" router
 is unreachable. Disabling fallbacks can fix this problem.
+
+Dependencies: requests
