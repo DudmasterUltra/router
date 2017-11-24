@@ -1,6 +1,6 @@
 """Actiontec router interfaces for rout3r"""
 __author__ = "ex0dus"
-__version__ = "1.0"
+__version__ = "1.1"
 
 import requests, base64, rout3r
 
@@ -30,18 +30,15 @@ class C1000A(rout3r.Router):
             })
             result = requests.get("http://{0}/login.html".format(ip_address))
             if "not valid" in result.text:
-                raise Exception("Invalid password")
+                raise Exception("Invalid credentials")
         self.logged_in = True
 
     def __del__(self):
-        try:
-            self.logout()
-        except Exception:
-            pass
+        self.logout()
 
     def get_clients(self):
         if not self.logged_in:
-            raise Exception("This object has been logged out")
+            raise rout3r.RouterLoggedOutException("This object has been logged out")
         get = requests.get("http://{0}/modemstatus_activeuserlist_refresh.html".format(self.ip_address))
         host_info = get.text.split("|")
         clients = []
@@ -68,7 +65,7 @@ class C1000A(rout3r.Router):
 
     def get_firmware(self):
         if not self.logged_in:
-            raise Exception("This object has been logged out")
+            raise rout3r.RouterLoggedOutException("This object has been logged out")
         get = requests.get("http://{0}/modemstatus_home.html".format(self.ip_address))
         return _scrape(get.text, "var soft_ver=", "'")
 
@@ -82,21 +79,26 @@ class C1000A(rout3r.Router):
 
     def reboot(self):
         if not self.logged_in:
-            raise Exception("This object has been logged out")
-        result = requests.post("http://{0}/rebootinfo.cgi".format(self.ip_address), params={ "Reboot": 1 })
+            raise rout3r.RouterLoggedOutException("This object has been logged out")
+        result = requests.post("http://{0}/rebootinfo.cgi".format(self.ip_address), params={
+
+            "Reboot": 1
+
+        })
         if result.status_code == 200:
             self.logged_in = False
-        return result
+            return True
+        return False
 
     def get_ssid(self):
         if not self.logged_in:
-            raise Exception("This object has been logged out")
+            raise rout3r.RouterLoggedOutException("This object has been logged out")
         get = requests.get("http://{0}/wirelesssetup_basicsettings.html".format(self.ip_address))
         return _scrape(get.text, "gv_ssid = ", "\"")
 
     def set_ssid(self, ssid):
         if not self.logged_in:
-            raise Exception("This object has been logged out")
+            raise rout3r.RouterLoggedOutException("This object has been logged out")
         post = requests.post("http://{0}/wirelesssetup_basicsettings.wl".format(self.ip_address), params={
 
             "wlRadio": 1,
@@ -108,7 +110,7 @@ class C1000A(rout3r.Router):
 
     def enable_radio(self):
         if not self.logged_in:
-            raise Exception("This object has been logged out")
+            raise rout3r.RouterLoggedOutException("This object has been logged out")
         post = requests.post("http://{0}/wirelesssetup_basicsettings.wl".format(self.ip_address), params={
 
             "wlRadio": 1,
@@ -120,7 +122,7 @@ class C1000A(rout3r.Router):
 
     def disable_radio(self):
         if not self.logged_in:
-            raise Exception("This object has been logged out")
+            raise rout3r.RouterLoggedOutException("This object has been logged out")
         post = requests.post("http://{0}/wirelesssetup_basicsettings.wl".format(self.ip_address), params={
 
             "wlRadio": 0,
@@ -132,17 +134,20 @@ class C1000A(rout3r.Router):
 
     def get_key(self):
         if not self.logged_in:
-            raise Exception("This object has been logged out")
+            raise rout3r.RouterLoggedOutException("This object has been logged out")
         get = requests.get("http://{0}/wirelesssetup_basicsettings.html".format(self.ip_address))
         return _scrape(get.text, "gv_wpapsk_key  =", "\"")
 
     def logout(self):
         if self.logged_in:
             self.logged_in = False
-            return requests.post("http://{0}/logout.cgi".format(self.ip_address))
+            try:
+                requests.post("http://{0}/logout.cgi".format(self.ip_address))
+            except:
+                pass
 
     @staticmethod
-    def check_model(gateway):
+    def check_model(gateway, ip):
         return ("Actiontec C1000A" in gateway) or ("var board_id='C1000A';" in gateway)
 
 __routers__ = [C1000A]

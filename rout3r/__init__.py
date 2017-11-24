@@ -28,6 +28,9 @@ def get_public_ip():
     """Retrieve your public IP address (using ipify)"""
     return requests.get('https://api.ipify.org').text
 
+class RouterLoggedOutException(Exception):
+    pass
+
 class RouterResult:
     """A result object returned by automatic methods which find routers containing the
     router class and IP address"""
@@ -39,7 +42,7 @@ class RouterResult:
         self.ip_address = ip_address
 
     def __call__(self, *args, **kwargs):
-        return self.Class.__call__(*args, **kwargs)
+        return self.Class.__call__(ip_address=self.ip_address, *args, **kwargs)
 
 class RouterClient:
     """An object to describe characteristics about clients connected to the router"""
@@ -47,12 +50,14 @@ class RouterClient:
     ip_address = None
     mac_address = None
     connection_type = None
+    radio_strength = None
+    is_online = True
 
     def __str__(self):
         return str(self.__dict__)
 
     def __repr__(self):
-        return str(self.__dict__)
+        return str(self)
 
 class Router(object, metaclass=abc.ABCMeta):
     """An abstract router class which all module router classes should extend"""
@@ -98,6 +103,11 @@ class Router(object, metaclass=abc.ABCMeta):
     def logout(self):
         raise NotImplementedError("{0} is missing this implementation".format(self.__class__.__name__))
 
+    """This method will return True if this module supports the actual router firmware, False if otherwise.
+NOTE: The module may still work even if unsupported!"""
+    def supports_firmware(self):
+        return self.firmware == self.get_firmware()
+    
     """This method should return True when the gateway HTML matches this router model ONLY, otherwise return False"""
     @staticmethod
     @abc.abstractmethod
@@ -120,7 +130,7 @@ def get_router(ip_address=DEFAULT_IP, test_fallbacks=ENABLE_FALLBACK_DEFAULT_IPS
                 if not hasattr(_import, "__routers__"):
                     raise NotImplementedError("Module {0} is missing __routers__ list".format(_import))
                 for router_class in _import.__routers__:
-                    if router_class.check_model(result.text) is True:
+                    if router_class.check_model(result.text, ip):
                         return RouterResult(router_class, ip)
             raise NotImplementedError("The router at {ip} does not have a module, or cannot be determined automatically".format(
                 ip=ip))
