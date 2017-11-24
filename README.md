@@ -1,5 +1,5 @@
 # router
-The python interface for your router
+The Python interface for your router
 
 This framework "standardizes" router control for your program. Currently, the
 only module is for Actiontec routers. However, I am open to pull requests and
